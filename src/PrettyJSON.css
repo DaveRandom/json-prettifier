@@ -1,0 +1,37 @@
+.pretty-json-container {
+    font-family: monospace;
+}
+.pretty-json-container span.value-string {
+    color: #0000FF;
+}
+.pretty-json-container span.value-string a {
+    color: #0060E0;
+    text-decoration: none;
+}
+.pretty-json-container span.value-string a:hover {
+    text-decoration: underline;
+}
+.pretty-json-container span.value-number {
+    color: #000080;
+}
+.pretty-json-container span.value-boolean {
+    color: #308014;
+}
+.pretty-json-container span.value-null {
+    color: #787878;
+}
+.pretty-json-container span.object-delimiter, .pretty-json-container span.enclosure-active {
+    cursor: default;
+    font-weight: bold;
+}
+.pretty-json-container span.array-enclosure {
+    cursor: default;
+    color: #C00080;
+}
+.pretty-json-container span.object-enclosure {
+    cursor: default;
+    color: #800000;
+}
+.pretty-json-container div.object-body {
+    margin-left: 4ch;
+}
