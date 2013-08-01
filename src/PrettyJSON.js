@@ -1,7 +1,7 @@
 var PrettyJSON = {};
 
 (function() {
-    "use strict";
+    'use strict';
 
     var elementifyArray, elementifyObject, toElement;
 
@@ -51,7 +51,45 @@ var PrettyJSON = {};
         closeBrace.addEventListener('mouseout', mouseOut);
     }
 
-    elementifyArray = function(arr)
+    function getPadding(count)
+    {
+        var i, result = '';
+
+        for (i = 0; i < count; i++) {
+            result += ' ';
+        }
+
+        return result;
+    }
+
+    function extractLinks(str)
+    {
+        var match, anchor, parts = [], p = 0,
+            urlExpr = /\bhttps?:\/\/[^\/]+\/\S*/g;
+
+        while (match = urlExpr.exec(str)) {
+            if (p < match.index) {
+                parts.push(document.createTextNode(str.slice(p, match.index)));
+            }
+            p = match.index + match[0].length;
+
+            anchor = document.createElement('a');
+            anchor.href = match[0];
+            anchor.target = '_blank';
+            anchor.appendChild(document.createTextNode(JSON.stringify(match[0]).slice(1, -1)));
+            parts.push(anchor);
+        }
+
+        if (parts.length) {
+            if (p < str.length - 1) {
+                parts.push(document.createTextNode(str.slice(p)));
+            }
+
+            return parts;
+        }
+    }
+
+    elementifyArray = function(arr, indent)
     {
         var i, l, container, member, wrapper;
 
@@ -61,21 +99,26 @@ var PrettyJSON = {};
         for (i = 0, l = arr.length; i < l; i++) {
             member = document.createElement('div');
             member.className = 'object-member';
-            toElement(arr[i], member);
-            container.appendChild(member);
+            member.appendChild(document.createTextNode(getPadding(indent)));
+
+            toElement(arr[i], member, indent);
             
             wrapper = document.createElement('span');
             wrapper.className = 'object-delimiter json-grammar';
             wrapper.appendChild(document.createTextNode(','));
             member.appendChild(wrapper);
+
+            container.appendChild(member);
         }
 
-        container.lastChild.removeChild(container.lastChild.lastChild);
+        if (container.lastChild) {
+            container.lastChild.removeChild(container.lastChild.lastChild);
+        }
 
         return container;
     };
 
-    elementifyObject = function(obj)
+    elementifyObject = function(obj, indent)
     {
         var key, container, member, wrapper;
 
@@ -86,10 +129,11 @@ var PrettyJSON = {};
             if (obj.hasOwnProperty(key) && typeof obj[key] !== 'function') {
                 member = document.createElement('div');
                 member.className = 'object-member';
+                member.appendChild(document.createTextNode(getPadding(indent)));
 
                 wrapper = document.createElement('span');
                 wrapper.className = 'object-member-key';
-                toElement(String(key), wrapper);
+                toElement(String(key), wrapper, indent);
                 member.appendChild(wrapper);
 
                 wrapper = document.createElement('span');
@@ -99,7 +143,7 @@ var PrettyJSON = {};
 
                 wrapper = document.createElement('span');
                 wrapper.className = 'object-member-value';
-                toElement(obj[key], wrapper);
+                toElement(obj[key], wrapper, indent);
                 member.appendChild(wrapper);
 
                 wrapper = document.createElement('span');
@@ -111,32 +155,34 @@ var PrettyJSON = {};
             }
         }
 
-        container.lastChild.removeChild(container.lastChild.lastChild);
+        if (container.lastChild) {
+            container.lastChild.removeChild(container.lastChild.lastChild);
+        }
 
         return container;
     };
 
-    toElement = function(obj, container)
+    toElement = function(obj, container, indent)
     {
-        var wrapper, anchor, openBrace, closeBrace;
+        var wrapper, anchor, openBrace, closeBrace, parts, i, l;
 
         if (!container) {
             container = document.createElement('div');
-            container.className = "pretty-json-container";
+            container.className = 'pretty-json-container';
         }
+        indent = indent || 0;
 
         switch (typeof obj) {
             case 'string':
-                if (obj.match(/^https?:\/\/[^\/]+\/\S*$/)) {
+                if (parts = extractLinks(obj)) {
                     wrapper = document.createElement('span');
                     wrapper.className = 'value-string';
                     wrapper.title = 'String';
+
                     wrapper.appendChild(document.createTextNode('"'));
-                    anchor = document.createElement('a');
-                    anchor.href = obj;
-                    anchor.target = '_blank';
-                    anchor.appendChild(document.createTextNode(JSON.stringify(obj).slice(1, -1)));
-                    wrapper.appendChild(anchor);
+                    for (i = 0, l = parts.length; i < l; i++) {
+                        wrapper.appendChild(parts[i]);
+                    }
                     wrapper.appendChild(document.createTextNode('"'));
 
                     container.appendChild(wrapper);
@@ -164,30 +210,43 @@ var PrettyJSON = {};
                     openBrace = document.createElement('span');
                     openBrace.className = 'array-enclosure json-grammar';
                     openBrace.appendChild(document.createTextNode('['));
-                    container.appendChild(openBrace);
-
-                    container.appendChild(elementifyArray(obj));
-
                     closeBrace = document.createElement('span');
                     closeBrace.className = 'array-enclosure json-grammar';
-                    closeBrace.appendChild(document.createTextNode(']'));
-                    container.appendChild(closeBrace);
-
+                    openBrace.title = closeBrace.title = 'Array (' + obj.length + ' element' + (obj.length === 1 ? '' : 's') + ')';
                     attachBraceMatchRollover(openBrace, closeBrace);
+
+                    container.appendChild(openBrace);
+
+                    if (obj.length) {
+                        container.appendChild(elementifyArray(obj, indent + 4));
+                        closeBrace.appendChild(document.createTextNode(getPadding(indent) + ']'));
+                    } else {
+                        closeBrace.appendChild(document.createTextNode(']'));
+                    }
+
+                    container.appendChild(closeBrace);
                 } else {
                     openBrace = document.createElement('span');
                     openBrace.className = 'object-enclosure';
                     openBrace.appendChild(document.createTextNode('{'));
-                    container.appendChild(openBrace);
-
-                    container.appendChild(elementifyObject(obj));
-
                     closeBrace = document.createElement('span');
                     closeBrace.className = 'object-enclosure';
-                    closeBrace.appendChild(document.createTextNode('}'));
-                    container.appendChild(closeBrace);
 
+                    wrapper = elementifyObject(obj, indent + 4);
+
+                    openBrace.title = closeBrace.title = 'Object (' + wrapper.childNodes.length + ' member' + (wrapper.childNodes.length === 1 ? '' : 's') + ')';
                     attachBraceMatchRollover(openBrace, closeBrace);
+
+                    container.appendChild(openBrace);
+
+                    if (wrapper.childNodes.length) {
+                        container.appendChild(wrapper);
+                        closeBrace.appendChild(document.createTextNode(getPadding(indent) + '}'));
+                    } else {
+                        closeBrace.appendChild(document.createTextNode('}'));
+                    }
+
+                    container.appendChild(closeBrace);
                 }
                 break;
         }
@@ -204,4 +263,6 @@ var PrettyJSON = {};
     {
         return toElement(obj).outerHTML;
     };
+
+    JSON.prettify = PrettyJSON.elementify;
 }());

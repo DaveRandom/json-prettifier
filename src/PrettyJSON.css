@@ -1,5 +1,6 @@
 .pretty-json-container {
-    font-family: monospace;
+    font-family: "Courier New", Courier, monospace;
+    white-space: pre;
 }
 .pretty-json-container span.value-string {
     color: #0000FF;
@@ -31,7 +32,4 @@
 .pretty-json-container span.object-enclosure {
     cursor: default;
     color: #800000;
-}
-.pretty-json-container div.object-body {
-    margin-left: 4ch;
 }

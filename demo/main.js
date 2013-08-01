@@ -1,4 +1,4 @@
-window.addEventListener('DOMContentLoaded', function() {
+(function() {
 
     function clearContents(el)
     {
@@ -29,15 +29,16 @@ window.addEventListener('DOMContentLoaded', function() {
             clearContents(output);
             output.classList.add('pretty-json');
             output.classList.remove('working-message');
-            output.appendChild(PrettyJSON.elementify(data));
+            output.appendChild(JSON.prettify(data));
         } catch(e) {
             clearContents(output);
-            output.classList.add('error-message');
+            output.classList.remove('pretty-json');
             output.classList.remove('working-message');
+            output.classList.add('error-message');
             output.appendChild(document.createTextNode('Error: ' + e.message));
         }
 
         e.preventDefault();
     });
 
-});
+}());
