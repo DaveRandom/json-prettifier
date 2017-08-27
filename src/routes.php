@@ -2,7 +2,6 @@
 
 namespace DaveRandom\JsonPrettifier;
 
-use DaveRandom\JsonPrettifier\Controllers\Controller;
 use Shitwork\Routing\Routes\Route;
 
 return [

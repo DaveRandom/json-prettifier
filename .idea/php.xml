@@ -6,6 +6,7 @@
       <path value="$PROJECT_DIR$/vendor/nikic/fast-route" />
       <path value="$PROJECT_DIR$/vendor/rdlowrey/auryn" />
       <path value="$PROJECT_DIR$/vendor/daverandom/shitwork" />
+      <path value="$PROJECT_DIR$/vendor/daverandom/exceptional-json" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.1" />

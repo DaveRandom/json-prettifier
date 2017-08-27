@@ -116,6 +116,8 @@
                 saveButtonVisible = false;
             }
 
+            valueTooltip.style.visibility = 'hidden';
+
             clearContents(output);
 
             output.classList.add('working-message');

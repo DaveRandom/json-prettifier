@@ -7,36 +7,44 @@ use Shitwork\Exceptions\MethodNotAllowedException;
 use Shitwork\Exceptions\NotFoundException;
 use Shitwork\Request;
 use Shitwork\Routing\Router;
-use Shitwork\Template;
+use Shitwork\TemplateFetcher;
+
+require __DIR__ . '/bootstrap.php';
+
+($injector = \Shitwork\bootstrap())
+    ->define(Router::class, [':routes' => require SRC_ROOT . '/routes.php'])
+    ->define(TemplateFetcher::class, [':path' => TEMPLATE_PATTERN])
+    ->define(PasteAccessor::class, [':storageDirectory' => SAVE_DIR]);
 
 try {
-    require __DIR__ . '/bootstrap.php';
-
-    ($injector = \Shitwork\bootstrap())
-        ->define(Router::class, [':routes' => require SRC_ROOT . '/routes.php'])
+    $injector
         ->make(Router::class)
         ->dispatchRequest($injector->make(Request::class))
         ->dispatch();
 } catch (NotFoundException $e) {
     \header('HTTP/1.1 404 Not Found');
 
-    (new Template(TEMPLATES_ROOT . '/error.phtml'))
+    $injector->make(TemplateFetcher::class)
+        ->fetch('error')
         ->render(['title' => 'Not Found']);
 } catch (ForbiddenException $e) {
     \header('HTTP/1.1 403 Forbidden');
 
-    (new Template(TEMPLATES_ROOT . '/error.phtml'))
+    $injector->make(TemplateFetcher::class)
+        ->fetch('error')
         ->render(['title' => 'Forbidden']);
 } catch (MethodNotAllowedException $e) {
     \header('HTTP/1.1 405 Method Not Allowed');
 
-    (new Template(TEMPLATES_ROOT . '/error.phtml'))
+    $injector->make(TemplateFetcher::class)
+        ->fetch('error')
         ->render(['title' => 'Method Not Allowed']);
 } catch (\Throwable $e) {
     error_log((string)$e);
 
     \header('HTTP/1.1 500 Internal Server Error');
 
-    (new Template(TEMPLATES_ROOT . '/error.phtml'))
+    $injector->make(TemplateFetcher::class)
+        ->fetch('error')
         ->render(['title' => 'Internal Server Error']);
 }

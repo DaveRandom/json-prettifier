@@ -17,6 +17,7 @@
   },
   "require": {
     "php": ">=7.1",
-    "daverandom/shitwork": "dev-master"
+    "daverandom/shitwork": "dev-master",
+    "daverandom/exceptional-json": "^1.0"
   }
 }
