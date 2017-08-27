@@ -1,0 +1,38 @@
+<?php
+
+$json = $json ?? '';
+$bodyClass = $json !== ''
+    ? ' class="paste"'
+    : '';
+
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <title>JSON Prettifier</title>
+    <link rel="stylesheet" type="text/css" href="/PrettyJSON/PrettyJSON.css">
+    <link rel="stylesheet" type="text/css" href="/main.css">
+</head>
+<body<?= $bodyClass ?>>
+<h1><a href="/">JSON Prettifier</a></h1>
+<div class="container">[<a href="https://github.com/DaveRandom/json-prettifier">source</a>]</div>
+<section id="ugly-json" class="hideable">
+    <h3>Paste ugly JSON here</h3>
+    <div class="container">
+        <form method="post" action="/save">
+            <textarea id="input" class="soft-corner" title="Paste ugly JSON here" name="json"><?= \htmlspecialchars($json) ?></textarea>
+            <button id="prettify" class="button">Prettify</button>
+        </form>
+    </div>
+</section>
+<section id="pretty-json">
+    <h3 class="hideable">View pretty JSON here</h3>
+    <div class="container">
+        <div id="output" class="soft-corner"></div>
+    </div>
+</section>
+<script type="text/javascript" src="/PrettyJSON/PrettyJSON.js"></script>
+<script type="text/javascript" src="/main.js"></script>
+</body>
+</html>

@@ -164,7 +164,7 @@ var PrettyJSON = {};
 
     toElement = function(obj, container, indent)
     {
-        var wrapper, anchor, openBrace, closeBrace, parts, i, l;
+        var wrapper, openBrace, closeBrace, parts, i, l;
 
         if (!container) {
             container = document.createElement('div');

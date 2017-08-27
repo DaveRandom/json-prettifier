@@ -1,0 +1,22 @@
+{
+  "name": "daverandom/json-prettifier",
+  "description": "Converts ugly JSON into pretty JSON",
+  "minimum-stability": "dev",
+  "license": "mit",
+  "authors": [
+    {
+      "name": "Chris Wright",
+      "email": "cw@daverandom.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "DaveRandom\\JsonPrettifier\\": "src/"
+    },
+    "files": ["src/functions.php"]
+  },
+  "require": {
+    "php": ">=7.1",
+    "daverandom/shitwork": "dev-master"
+  }
+}
