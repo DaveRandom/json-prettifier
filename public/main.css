@@ -37,7 +37,7 @@ div.container {
 body.paste .hideable {
     display: none;
 }
-body.paste #output {
+section {
     margin-top: 25px;
 }
 .soft-corner {
@@ -85,8 +85,8 @@ button:active {
     margin: 0 auto;
     text-align: left;
     box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
+    overflow-x: scroll;
+    overflow-y: hidden;
 }
 #output.error-message {
     background-color: #EEB4B4;
@@ -95,4 +95,21 @@ button:active {
 #output.pretty-json, #output.working-message {
     background-color: #F8F8FF;
     border-color: #DDDDDD;
+}
+#value-tooltip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 10px 15px;
+    visibility: hidden;
+    border: solid 1px #c0c0c0;
+    border-radius: 8px;
+    box-shadow: 5px 5px 5px rgba(136, 136, 136, 0.5);
+    background-color: rgb(255,255,204);
+}
+#value-tooltip span.language-accessor-title {
+    font-style: italic;
+}
+#value-tooltip span.language-accessor {
+    font-family: "Courier New", Courier, monospace;
 }

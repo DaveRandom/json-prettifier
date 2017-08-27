@@ -3,52 +3,31 @@ var PrettyJSON = {};
 (function() {
     'use strict';
 
-    var elementifyArray, elementifyObject, toElement;
-
-    function addClass(el)
+    function attachValueClickHandler(wrapper, state, path)
     {
-        var i, l,
-            classNames = el.className.replace(/^\s+|\s+$/g, '').split(/\s+/);
-
-        for (i = 1, l = arguments.length; i < l; i++) {
-            if (classNames.indexOf(arguments[i]) < 0) {
-                classNames.push(arguments[i]);
-            }
-        }
-
-        el.className = classNames.join(' ');
-    }
-
-    function removeClass(el, className)
-    {
-        var i, l, index,
-            classNames = el.className.replace(/^\s+|\s+$/g, '').split(/\s+/);
-
-        for (i = 1, l = arguments.length; i < l; i++) {
-            index = classNames.indexOf(arguments[i]);
-            if (index >= 0) {
-                classNames.splice(index, 1);
-            }
-        }
-
-        el.className = classNames.join(' ');
+        wrapper.addEventListener('click', function(e) {
+            state.triggerEvent('value-click', e, path);
+        });
     }
 
     function attachBraceMatchRollover(openBrace, closeBrace)
     {
-        var mouseOver = function() {
-            addClass(openBrace, 'enclosure-active');
-            addClass(closeBrace, 'enclosure-active');
-        },
-        mouseOut = function() {
-            removeClass(openBrace, 'enclosure-active');
-            removeClass(closeBrace, 'enclosure-active');
-        };
+        function mouseOverHandler()
+        {
+            openBrace.classList.add('enclosure-active');
+            closeBrace.classList.add('enclosure-active');
+        }
 
-        openBrace.addEventListener('mouseover', mouseOver);
-        openBrace.addEventListener('mouseout', mouseOut);
-        closeBrace.addEventListener('mouseover', mouseOver);
-        closeBrace.addEventListener('mouseout', mouseOut);
+        function mouseOutHandler()
+        {
+            openBrace.classList.remove('enclosure-active');
+            closeBrace.classList.remove('enclosure-active');
+        }
+
+        openBrace.addEventListener('mouseover', mouseOverHandler);
+        openBrace.addEventListener('mouseout', mouseOutHandler);
+        closeBrace.addEventListener('mouseover', mouseOverHandler);
+        closeBrace.addEventListener('mouseout', mouseOutHandler);
     }
 
     function getPadding(count)
@@ -89,95 +68,134 @@ var PrettyJSON = {};
         }
     }
 
-    elementifyArray = function(arr, indent)
+    function elementifyArray(arr, state, indent, basePath)
     {
-        var i, l, container, member, wrapper;
+        var i, l, containerElement, member, wrapper, elementPath;
 
-        container = document.createElement('div');
-        container.className = 'object-body';
+        containerElement = document.createElement('div');
+        containerElement.classList.add('object-body');
 
         for (i = 0, l = arr.length; i < l; i++) {
+            elementPath = basePath.slice();
+            elementPath.push([i]);
+
             member = document.createElement('div');
-            member.className = 'object-member';
+            member.classList.add('object-member');
             member.appendChild(document.createTextNode(getPadding(indent)));
 
-            toElement(arr[i], member, indent);
+            toElement(arr[i], state, member, indent, elementPath);
             
             wrapper = document.createElement('span');
-            wrapper.className = 'object-delimiter json-grammar';
+            wrapper.classList.add('object-delimiter', 'json-grammar');
             wrapper.appendChild(document.createTextNode(','));
             member.appendChild(wrapper);
 
-            container.appendChild(member);
+            containerElement.appendChild(member);
         }
 
-        if (container.lastChild) {
-            container.lastChild.removeChild(container.lastChild.lastChild);
+        if (containerElement.lastChild) {
+            containerElement.lastChild.removeChild(containerElement.lastChild.lastChild);
         }
 
-        return container;
-    };
+        return containerElement;
+    }
 
-    elementifyObject = function(obj, indent)
+    function elementifyObject(obj, state, indent, basePath)
     {
-        var key, container, member, wrapper;
+        var key, containerElement, member, wrapper, elementPath;
 
-        container = document.createElement('div');
-        container.className = 'object-body';
+        containerElement = document.createElement('div');
+        containerElement.classList.add('object-body');
 
         for (key in obj) {
             if (obj.hasOwnProperty(key) && typeof obj[key] !== 'function') {
+                elementPath = basePath.slice();
+                elementPath.push(key);
+
                 member = document.createElement('div');
-                member.className = 'object-member';
+                member.classList.add('object-member');
                 member.appendChild(document.createTextNode(getPadding(indent)));
 
                 wrapper = document.createElement('span');
-                wrapper.className = 'object-member-key';
-                toElement(String(key), wrapper, indent);
+                wrapper.classList.add('object-member-key');
+                toElement(String(key), state, wrapper, indent);
                 member.appendChild(wrapper);
 
                 wrapper = document.createElement('span');
-                wrapper.className = 'object-delimiter json-grammar';
+                wrapper.classList.add('object-delimiter', 'json-grammar');
                 wrapper.appendChild(document.createTextNode(' : '));
                 member.appendChild(wrapper);
 
                 wrapper = document.createElement('span');
-                wrapper.className = 'object-member-value';
-                toElement(obj[key], wrapper, indent);
+                wrapper.classList.add('object-member-value');
+                toElement(obj[key], state, wrapper, indent, elementPath);
                 member.appendChild(wrapper);
 
                 wrapper = document.createElement('span');
-                wrapper.className = 'object-delimiter json-grammar';
+                wrapper.classList.add('object-delimiter', 'json-grammar');
                 wrapper.appendChild(document.createTextNode(','));
                 member.appendChild(wrapper);
 
-                container.appendChild(member);
+                containerElement.appendChild(member);
             }
         }
 
-        if (container.lastChild) {
-            container.lastChild.removeChild(container.lastChild.lastChild);
+        if (containerElement.lastChild) {
+            containerElement.lastChild.removeChild(containerElement.lastChild.lastChild);
         }
 
-        return container;
-    };
+        return containerElement;
+    }
 
-    toElement = function(obj, container, indent)
+    function createStateObject(containerElement)
     {
-        var wrapper, openBrace, closeBrace, parts, i, l;
+        var eventHandlers = {};
 
-        if (!container) {
-            container = document.createElement('div');
-            container.className = 'pretty-json-container';
+        return {
+            rootElement: containerElement,
+            addEventListener: function(name, callback) {
+                if (eventHandlers[name] === undefined) {
+                    eventHandlers[name] = [];
+                }
+                eventHandlers[name].push(callback);
+            },
+            triggerEvent: function(name) {
+                if (eventHandlers[name] === undefined) {
+                    return;
+                }
+                var args = Array.prototype.slice.call(arguments, 1);
+                for (var i = 0; i < eventHandlers[name].length; i++) {
+                    eventHandlers[name][i].apply(null, args)
+                }
+            },
+        };
+    }
+
+    function toElement(obj, state, containerElement, indent, path)
+    {
+        var wrapper, openBrace, closeBrace, parts, i, l,
+            isValue = Boolean(path);
+
+        if (!containerElement) {
+            containerElement = document.createElement('div');
+            containerElement.classList.add('pretty-json-container');
+
+            state = createStateObject(containerElement);
         }
+
         indent = indent || 0;
+        path = path || [];
 
         switch (typeof obj) {
             case 'string':
                 if (parts = extractLinks(obj)) {
                     wrapper = document.createElement('span');
-                    wrapper.className = 'value-string';
+                    wrapper.classList.add('value-string');
                     wrapper.title = 'String';
+                    if (isValue) {
+                        wrapper.classList.add('json-value');
+                        attachValueClickHandler(wrapper, state, path);
+                    }
 
                     wrapper.appendChild(document.createTextNode('"'));
                     for (i = 0, l = parts.length; i < l; i++) {
@@ -185,74 +203,103 @@ var PrettyJSON = {};
                     }
                     wrapper.appendChild(document.createTextNode('"'));
 
-                    container.appendChild(wrapper);
+                    containerElement.appendChild(wrapper);
                     break;
                 }
 
-            case 'number': case 'boolean':
+            case 'number':
+            case 'boolean':
                 wrapper = document.createElement('span');
-                wrapper.className = 'value-' + (typeof obj);
+                wrapper.classList.add('value-' + (typeof obj));
                 wrapper.title = (typeof obj).slice(0, 1).toUpperCase() + (typeof obj).slice(1);
+                if (isValue) {
+                    wrapper.classList.add('json-value');
+                    attachValueClickHandler(wrapper, state, path);
+                }
+
                 wrapper.appendChild(document.createTextNode(JSON.stringify(obj)));
 
-                container.appendChild(wrapper);
+                containerElement.appendChild(wrapper);
                 break;
 
             case 'object':
                 if (obj === null) {
                     wrapper = document.createElement('span');
-                    wrapper.className = 'value-null';
+                    wrapper.classList.add('value-null');
                     wrapper.title = 'Null';
+                    if (isValue) {
+                        wrapper.classList.add('json-value');
+                        attachValueClickHandler(wrapper, state, path);
+                    }
+
                     wrapper.appendChild(document.createTextNode(JSON.stringify(obj)));
 
-                    container.appendChild(wrapper);
+                    containerElement.appendChild(wrapper);
                 } else if (obj instanceof Array) {
                     openBrace = document.createElement('span');
-                    openBrace.className = 'array-enclosure json-grammar';
+                    openBrace.classList.add('array-enclosure', 'json-grammar');
                     openBrace.appendChild(document.createTextNode('['));
                     closeBrace = document.createElement('span');
-                    closeBrace.className = 'array-enclosure json-grammar';
+                    closeBrace.classList.add('array-enclosure', 'json-grammar');
                     openBrace.title = closeBrace.title = 'Array (' + obj.length + ' element' + (obj.length === 1 ? '' : 's') + ')';
+
+                    if (isValue) {
+                        openBrace.classList.add('json-value');
+                        attachValueClickHandler(openBrace, state, path);
+                        closeBrace.classList.add('json-value');
+                        attachValueClickHandler(closeBrace, state, path);
+                    }
+
                     attachBraceMatchRollover(openBrace, closeBrace);
 
-                    container.appendChild(openBrace);
+                    containerElement.appendChild(openBrace);
 
                     if (obj.length) {
-                        container.appendChild(elementifyArray(obj, indent + 4));
+                        containerElement.appendChild(elementifyArray(obj, state, indent + 4, path));
                         closeBrace.appendChild(document.createTextNode(getPadding(indent) + ']'));
                     } else {
                         closeBrace.appendChild(document.createTextNode(']'));
                     }
 
-                    container.appendChild(closeBrace);
+                    containerElement.appendChild(closeBrace);
                 } else {
                     openBrace = document.createElement('span');
-                    openBrace.className = 'object-enclosure';
+                    openBrace.classList.add('object-enclosure');
                     openBrace.appendChild(document.createTextNode('{'));
                     closeBrace = document.createElement('span');
-                    closeBrace.className = 'object-enclosure';
+                    closeBrace.classList.add('object-enclosure');
 
-                    wrapper = elementifyObject(obj, indent + 4);
+                    if (isValue) {
+                        openBrace.classList.add('json-value');
+                        attachValueClickHandler(openBrace, state, path);
+                        closeBrace.classList.add('json-value');
+                        attachValueClickHandler(closeBrace, state, path);
+                    }
+
+                    wrapper = elementifyObject(obj, state, indent + 4, path);
 
                     openBrace.title = closeBrace.title = 'Object (' + wrapper.childNodes.length + ' member' + (wrapper.childNodes.length === 1 ? '' : 's') + ')';
                     attachBraceMatchRollover(openBrace, closeBrace);
 
-                    container.appendChild(openBrace);
+                    containerElement.appendChild(openBrace);
 
                     if (wrapper.childNodes.length) {
-                        container.appendChild(wrapper);
+                        containerElement.appendChild(wrapper);
                         closeBrace.appendChild(document.createTextNode(getPadding(indent) + '}'));
                     } else {
                         closeBrace.appendChild(document.createTextNode('}'));
                     }
 
-                    container.appendChild(closeBrace);
+                    containerElement.appendChild(closeBrace);
                 }
                 break;
         }
 
-        return container;
-    };
+        return {
+            rootElement: state.rootElement,
+            addEventListener: state.addEventListener,
+        };
+    }
 
     PrettyJSON.elementify = function(obj)
     {

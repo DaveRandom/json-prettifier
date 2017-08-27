@@ -1,4 +1,5 @@
 .pretty-json-container {
+    cursor: default;
     font-family: "Courier New", Courier, monospace;
     white-space: pre;
 }
@@ -22,14 +23,14 @@
     color: #787878;
 }
 .pretty-json-container span.object-delimiter, .pretty-json-container span.enclosure-active {
-    cursor: default;
     font-weight: bold;
 }
 .pretty-json-container span.array-enclosure {
-    cursor: default;
     color: #C00080;
 }
 .pretty-json-container span.object-enclosure {
-    cursor: default;
     color: #800000;
+}
+.pretty-json-container .json-value {
+    cursor: pointer;
 }

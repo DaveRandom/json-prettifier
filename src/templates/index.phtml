@@ -18,20 +18,23 @@ $bodyClass = $json !== ''
 <h1><a href="/">JSON Prettifier</a></h1>
 <div class="container">[<a href="https://github.com/DaveRandom/json-prettifier">source</a>]</div>
 <section id="ugly-json" class="hideable">
-    <h3>Paste ugly JSON here</h3>
     <div class="container">
         <form method="post" action="/save">
-            <textarea id="input" class="soft-corner" title="Paste ugly JSON here" name="json"><?= \htmlspecialchars($json) ?></textarea>
+            <textarea id="input" class="soft-corner" title="Paste ugly JSON here" placeholder="Paste ugly JSON here" name="json"><?= \htmlspecialchars($json) ?></textarea>
             <button id="prettify" class="button">Prettify</button>
         </form>
     </div>
 </section>
 <section id="pretty-json">
-    <h3 class="hideable">View pretty JSON here</h3>
     <div class="container">
         <div id="output" class="soft-corner"></div>
     </div>
 </section>
+<div id="value-tooltip">
+    <div><span class="language-accessor-title">JavaScript:</span> <span id="javascript-accessor" class="language-accessor"></span></div>
+    <div><span class="language-accessor-title">PHP Array:</span> <span id="php-array-accessor" class="language-accessor"></span></div>
+    <div><span class="language-accessor-title">PHP Object:</span> <span id="php-object-accessor" class="language-accessor"></span></div>
+</div>
 <script type="text/javascript" src="/PrettyJSON/PrettyJSON.js"></script>
 <script type="text/javascript" src="/main.js"></script>
 </body>
