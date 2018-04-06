@@ -3,32 +3,32 @@
     font-family: "Courier New", Courier, monospace;
     white-space: pre;
 }
-.pretty-json-container span.value-string {
+.pretty-json-container .value-string {
     color: #0000FF;
 }
-.pretty-json-container span.value-string a {
+.pretty-json-container .value-string a {
     color: #0060E0;
     text-decoration: none;
 }
-.pretty-json-container span.value-string a:hover {
+.pretty-json-container .value-string a:hover {
     text-decoration: underline;
 }
-.pretty-json-container span.value-number {
+.pretty-json-container .value-number {
     color: #000080;
 }
-.pretty-json-container span.value-boolean {
+.pretty-json-container .value-boolean {
     color: #308014;
 }
-.pretty-json-container span.value-null {
+.pretty-json-container .value-null {
     color: #787878;
 }
-.pretty-json-container span.object-delimiter, .pretty-json-container span.enclosure-active {
+.pretty-json-container .object-delimiter, .pretty-json-container .enclosure-active {
     font-weight: bold;
 }
-.pretty-json-container span.array-enclosure {
+.pretty-json-container .array-enclosure {
     color: #C00080;
 }
-.pretty-json-container span.object-enclosure {
+.pretty-json-container .object-enclosure {
     color: #800000;
 }
 .pretty-json-container .json-value {

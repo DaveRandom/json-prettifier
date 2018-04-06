@@ -32,7 +32,7 @@ var PrettyJSON = {};
 
     function getPadding(count)
     {
-        var i, result = '';
+        var i, result = '\n';
 
         for (i = 0; i < count; i++) {
             result += ' ';
@@ -72,24 +72,24 @@ var PrettyJSON = {};
     {
         var i, l, containerElement, member, wrapper, elementPath;
 
-        containerElement = document.createElement('div');
+        containerElement = document.createElement('span');
         containerElement.classList.add('object-body');
 
         for (i = 0, l = arr.length; i < l; i++) {
             elementPath = basePath.slice();
             elementPath.push([i]);
 
-            member = document.createElement('div');
+            member = document.createElement('span');
             member.classList.add('object-member');
-            member.appendChild(document.createTextNode(getPadding(indent)));
 
             toElement(arr[i], state, member, indent, elementPath);
-            
+
             wrapper = document.createElement('span');
             wrapper.classList.add('object-delimiter', 'json-grammar');
             wrapper.appendChild(document.createTextNode(','));
             member.appendChild(wrapper);
 
+            containerElement.appendChild(document.createTextNode(getPadding(indent)));
             containerElement.appendChild(member);
         }
 
@@ -104,7 +104,7 @@ var PrettyJSON = {};
     {
         var key, containerElement, member, wrapper, elementPath;
 
-        containerElement = document.createElement('div');
+        containerElement = document.createElement('span');
         containerElement.classList.add('object-body');
 
         for (key in obj) {
@@ -112,9 +112,8 @@ var PrettyJSON = {};
                 elementPath = basePath.slice();
                 elementPath.push(key);
 
-                member = document.createElement('div');
+                member = document.createElement('span');
                 member.classList.add('object-member');
-                member.appendChild(document.createTextNode(getPadding(indent)));
 
                 wrapper = document.createElement('span');
                 wrapper.classList.add('object-member-key');
@@ -136,6 +135,7 @@ var PrettyJSON = {};
                 wrapper.appendChild(document.createTextNode(','));
                 member.appendChild(wrapper);
 
+                containerElement.appendChild(document.createTextNode(getPadding(indent)));
                 containerElement.appendChild(member);
             }
         }
@@ -255,12 +255,12 @@ var PrettyJSON = {};
                     containerElement.appendChild(openBrace);
 
                     if (obj.length) {
-                        containerElement.appendChild(elementifyArray(obj, state, indent + 4, path));
-                        closeBrace.appendChild(document.createTextNode(getPadding(indent) + ']'));
-                    } else {
-                        closeBrace.appendChild(document.createTextNode(']'));
+                        wrapper = elementifyArray(obj, state, indent + 4, path);
+                        wrapper.appendChild(document.createTextNode(getPadding(indent)));
+                        containerElement.appendChild(wrapper);
                     }
 
+                    closeBrace.appendChild(document.createTextNode(']'));
                     containerElement.appendChild(closeBrace);
                 } else {
                     openBrace = document.createElement('span');
@@ -284,12 +284,11 @@ var PrettyJSON = {};
                     containerElement.appendChild(openBrace);
 
                     if (wrapper.childNodes.length) {
+                        wrapper.appendChild(document.createTextNode(getPadding(indent)));
                         containerElement.appendChild(wrapper);
-                        closeBrace.appendChild(document.createTextNode(getPadding(indent) + '}'));
-                    } else {
-                        closeBrace.appendChild(document.createTextNode('}'));
                     }
 
+                    closeBrace.appendChild(document.createTextNode('}'));
                     containerElement.appendChild(closeBrace);
                 }
                 break;
