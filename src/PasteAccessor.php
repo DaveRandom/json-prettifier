@@ -19,7 +19,7 @@ final class PasteAccessor
     public function save(string $data): string
     {
         try {
-            \ExceptionalJSON\decode($data);
+            \ExceptionalJSON\decode($data, true);
         } catch (DecodeErrorException $e) {
             throw new BadRequestException('Invalid JSON input');
         }
