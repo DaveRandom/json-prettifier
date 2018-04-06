@@ -30,15 +30,29 @@ var PrettyJSON = {};
         closeBrace.addEventListener('mouseout', mouseOutHandler);
     }
 
-    function getPadding(count)
+    function addFoldControl(target)
     {
-        var i, result = '\n';
+        var wrapper = document.createElement('span');
+        wrapper.classList.add('fold-control');
+
+        return target.appendChild(wrapper);
+    }
+
+    function addPadding(target, count)
+    {
+        target.appendChild(document.createTextNode('\n'));
+
+        var i, result = '';
 
         for (i = 0; i < count; i++) {
             result += ' ';
         }
 
-        return result;
+        var foldCtl = addFoldControl(target);
+
+        target.appendChild(document.createTextNode(result));
+
+        return foldCtl;
     }
 
     function extractLinks(str)
@@ -76,20 +90,21 @@ var PrettyJSON = {};
         containerElement.classList.add('object-body');
 
         for (i = 0, l = arr.length; i < l; i++) {
+            var foldCtl = addPadding(containerElement, indent);
+
             elementPath = basePath.slice();
             elementPath.push([i]);
 
             member = document.createElement('span');
             member.classList.add('object-member');
 
-            toElement(arr[i], state, member, indent, elementPath);
+            toElement(arr[i], state, member, indent, elementPath, foldCtl);
 
             wrapper = document.createElement('span');
             wrapper.classList.add('object-delimiter', 'json-grammar');
             wrapper.appendChild(document.createTextNode(','));
             member.appendChild(wrapper);
 
-            containerElement.appendChild(document.createTextNode(getPadding(indent)));
             containerElement.appendChild(member);
         }
 
@@ -109,6 +124,8 @@ var PrettyJSON = {};
 
         for (key in obj) {
             if (obj.hasOwnProperty(key) && typeof obj[key] !== 'function') {
+                var foldCtl = addPadding(containerElement, indent);
+
                 elementPath = basePath.slice();
                 elementPath.push(key);
 
@@ -127,7 +144,7 @@ var PrettyJSON = {};
 
                 wrapper = document.createElement('span');
                 wrapper.classList.add('object-member-value');
-                toElement(obj[key], state, wrapper, indent, elementPath);
+                toElement(obj[key], state, wrapper, indent, elementPath, foldCtl);
                 member.appendChild(wrapper);
 
                 wrapper = document.createElement('span');
@@ -135,7 +152,6 @@ var PrettyJSON = {};
                 wrapper.appendChild(document.createTextNode(','));
                 member.appendChild(wrapper);
 
-                containerElement.appendChild(document.createTextNode(getPadding(indent)));
                 containerElement.appendChild(member);
             }
         }
@@ -171,7 +187,23 @@ var PrettyJSON = {};
         };
     }
 
-    function toElement(obj, state, containerElement, indent, path)
+    function attachFoldControlClickEventListener(foldCtl, objectBody) {
+        foldCtl.classList.add('unfolded');
+
+        foldCtl.addEventListener('click', function() {
+            if (foldCtl.classList.contains('unfolded')) {
+                foldCtl.classList.remove('unfolded');
+                foldCtl.classList.add('folded');
+                objectBody.classList.add('folded');
+            } else {
+                foldCtl.classList.remove('folded');
+                foldCtl.classList.add('unfolded');
+                objectBody.classList.remove('folded');
+            }
+        });
+    }
+
+    function toElement(obj, state, containerElement, indent, path, foldCtl)
     {
         var wrapper, openBrace, closeBrace, parts, i, l,
             isValue = Boolean(path);
@@ -179,6 +211,7 @@ var PrettyJSON = {};
         if (!containerElement) {
             containerElement = document.createElement('div');
             containerElement.classList.add('pretty-json-container');
+            foldCtl = addFoldControl(containerElement);
 
             state = createStateObject(containerElement);
         }
@@ -256,7 +289,8 @@ var PrettyJSON = {};
 
                     if (obj.length) {
                         wrapper = elementifyArray(obj, state, indent + 4, path);
-                        wrapper.appendChild(document.createTextNode(getPadding(indent)));
+                        attachFoldControlClickEventListener(foldCtl, wrapper);
+                        addPadding(wrapper, indent);
                         containerElement.appendChild(wrapper);
                     }
 
@@ -284,8 +318,10 @@ var PrettyJSON = {};
                     containerElement.appendChild(openBrace);
 
                     if (wrapper.childNodes.length) {
-                        wrapper.appendChild(document.createTextNode(getPadding(indent)));
+                        attachFoldControlClickEventListener(foldCtl, wrapper);
+                        addPadding(wrapper, indent);
                         containerElement.appendChild(wrapper);
+                        foldCtl.classList.add('foldable', 'unfolded');
                     }
 
                     closeBrace.appendChild(document.createTextNode('}'));

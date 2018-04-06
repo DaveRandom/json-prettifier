@@ -34,3 +34,35 @@
 .pretty-json-container .json-value {
     cursor: pointer;
 }
+.pretty-json-container .object-body.folded {
+    font-size: 0.000000000000000000001px;
+    line-height: 0;
+    display: inline-block;
+}
+.pretty-json-container .object-body.folded::before {
+    content: '...';
+    font-size: 11px;
+    color: #000000;
+    padding: 1px;
+    background: #E1E1E1;
+    border-radius: 4px;
+    border: #C1C1C1 1px solid;
+}
+.pretty-json-container .object-body.folded .fold-control {
+    display: none;
+}
+.pretty-json-container .fold-control {
+    vertical-align: middle;
+    cursor: pointer;
+    display: inline-block;
+    height: 11px;
+    width: 11px;
+    background-size: cover;
+    margin-right: 5px;
+}
+.pretty-json-container .fold-control.folded {
+    background-image: url('/icon-unfold.png');
+}
+.pretty-json-container .fold-control.unfolded {
+    background-image: url('/icon-fold.png');
+}
