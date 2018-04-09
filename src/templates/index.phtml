@@ -15,8 +15,10 @@ $bodyClass = $json !== ''
     <link rel="stylesheet" type="text/css" href="/main.css">
 </head>
 <body<?= $bodyClass ?>>
-<h1><a href="/">JSON Prettifier</a></h1>
-<div class="container">[<a href="https://github.com/DaveRandom/json-prettifier">source</a>]</div>
+<header>
+    <h1><a href="/">JSON Prettifier</a></h1>
+    <div class="container">[<a href="https://github.com/DaveRandom/json-prettifier">source</a>]</div>
+</header>
 <section id="ugly-json" class="hideable">
     <div class="container">
         <form method="post" action="/save">
