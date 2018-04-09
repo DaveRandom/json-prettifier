@@ -8,7 +8,8 @@
         valueTooltip = document.getElementById('value-tooltip'),
         javascriptAccessor = document.getElementById('javascript-accessor'),
         phpArrayAccessor = document.getElementById('php-array-accessor'),
-        phpObjectAccessor = document.getElementById('php-object-accessor');
+        phpObjectAccessor = document.getElementById('php-object-accessor'),
+        uglyJsonSection = document.getElementById('ugly-json');
 
     var validJsNameExpr = /^[_a-z][_a-z0-9]*$/i;
     var validPhpNameExpr = /^[a-z_\x7f-\xff][a-z0-9_\x7f-\xff]*$/i;
@@ -111,6 +112,8 @@
     function prettifyInput(e)
     {
         try {
+            uglyJsonSection.classList.add('collapsed');
+
             if (saveButtonVisible) {
                 saveButton.parentNode.removeChild(saveButton);
                 saveButtonVisible = false;

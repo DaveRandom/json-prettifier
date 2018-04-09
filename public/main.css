@@ -1,4 +1,9 @@
+html {
+    height: 100%;
+}
 body {
+    height: calc(100% - 15px);
+    padding-top: 15px;
     margin: 0;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 14px;
@@ -8,12 +13,14 @@ body {
 }
 header, form {
     user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
 }
 section {
     padding: 4px 10px;
 }
 h1 {
-    margin-top: 15px;
+    margin-top: 0;
     margin-bottom: 5px;
 }
 h1 a {
@@ -59,6 +66,7 @@ button {
     text-decoration: none;
     text-shadow: 1px 1px 0 #FFFFFF;
     margin: 0 10px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 button:hover {
     background: linear-gradient(to bottom, #CFCFCF, #EDEDED);
@@ -68,12 +76,25 @@ button:active {
     top: 1px;
     left: 1px;
 }
+#ugly-json {
+    height: calc(100% - 111px);
+}
+#ugly-json.collapsed {
+    height: 180px;
+}
+#ugly-json > div.container, #ugly-json form {
+    height: 100%;
+}
 #input {
     width: 100%;
+    min-width: 100%;
+    max-width: 100%;
     min-height: 10em;
-    border-color: #D5D5D5;
+    border: #D5D5D5 1px solid;
+    background-color: #F9F9F9;
     display: block;
     margin: 0 auto;
+    height: calc(100% - 60px);
 }
 #prettify {
     margin-top: 10px;
