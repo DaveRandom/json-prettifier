@@ -48,6 +48,9 @@
     border-radius: 4px;
     border: #C1C1C1 1px solid;
 }
+.pretty-json-container .object-body.folded .object-body.folded::before {
+    display: none;
+}
 .pretty-json-container .object-body.folded .fold-control {
     display: none;
 }
