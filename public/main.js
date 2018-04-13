@@ -1,31 +1,26 @@
 (function() {
-
-    var saveButtonVisible = false,
-        saveButton = document.createElement('button'),
-        prettifyButton = document.getElementById('prettify'),
-        input = document.getElementById('input'),
-        output = document.getElementById('output'),
-        valueTooltip = document.getElementById('value-tooltip'),
-        javascriptAccessor = document.getElementById('javascript-accessor'),
-        phpArrayAccessor = document.getElementById('php-array-accessor'),
-        phpObjectAccessor = document.getElementById('php-object-accessor'),
-        uglyJsonSection = document.getElementById('ugly-json');
+    'use strict';
 
     var validJsNameExpr = /^[_a-z][_a-z0-9]*$/i;
     var validPhpNameExpr = /^[a-z_\x7f-\xff][a-z0-9_\x7f-\xff]*$/i;
 
-    function createAccessorStrings(path)
+    function getAccessorStrings(path, callback)
     {
+        if (typeof path.accessorStrings !== 'undefined') {
+            callback(path.accessorStrings);
+            return;
+        }
+
         var jsString = 'obj',
             phpArrayString = '$arr',
             phpObjectString = '$obj',
             key;
 
         for (var i = 0; i < path.length; i++) {
-            if (path[i] instanceof Array) {
-                jsString += '[' + path[i][0] + ']';
-                phpArrayString += '[' + path[i][0] + ']';
-                phpObjectString += '[' + path[i][0] + ']';
+            if (typeof path[i] === 'number') {
+                jsString += '[' + path[i] + ']';
+                phpArrayString += '[' + path[i] + ']';
+                phpObjectString += '[' + path[i] + ']';
                 continue;
             }
 
@@ -44,126 +39,180 @@
             }
         }
 
-        return {
+        path.accessorStrings = {
             javascript: jsString,
             phpArray: phpArrayString,
             phpObject: phpObjectString,
         };
+
+        callback(path.accessorStrings);
     }
 
-    function valueClickHandler(e, path)
+    function createInputSectionManager(selector)
     {
-        e.stopPropagation();
+        var sectionElement = document.querySelector(selector);
 
-        valueTooltip.style.visibility = 'hidden';
-        valueTooltip.style.left = '0';
-        valueTooltip.style.top = '0';
-
-        var strings = createAccessorStrings(path);
-        javascriptAccessor.innerText = strings.javascript;
-        phpObjectAccessor.innerText = strings.phpObject;
-        phpArrayAccessor.innerText = strings.phpArray;
-
-        var toolTipWidth = valueTooltip.clientWidth;
-        var toolTipHeight = valueTooltip.clientHeight;
-        var targetTop = e.target.getBoundingClientRect().top + document.body.scrollTop;
-        var outputRect = output.getBoundingClientRect();
-
-        var left = Math.max(
-            outputRect.left,
-            Math.min(
-                Math.round(e.pageX - (toolTipWidth / 2)),
-                (outputRect.left + outputRect.width) - toolTipWidth
-            )
-        );
-
-        var top = Math.round(targetTop - (toolTipHeight + 3));
-
-        if (top < 0) {
-            top = 0;
+        if (!sectionElement) {
+            throw new Error('Unable to get reference to input section from selector: ' + selector);
         }
 
-        valueTooltip.style.left = left + 'px';
-        valueTooltip.style.top = top + 'px';
-        valueTooltip.style.visibility = 'visible';
-    }
+        var textAreaElement = sectionElement.querySelector('textarea');
 
-    function outputClickHandler()
-    {
-        valueTooltip.style.visibility = 'hidden';
-    }
-
-    function clearContents(el)
-    {
-        while (el.childNodes.length) {
-            el.removeChild(el.firstChild);
+        if (!textAreaElement) {
+            throw new Error('Unable to get reference to input text area');
         }
+
+        return {
+            collapse: function() {
+                sectionElement.classList.add('collapsed');
+            },
+            isEmpty: function() {
+                return /^\s*$/.test(textAreaElement.value);
+            },
+            getData: function() {
+                try {
+                    return JSON.parse(textAreaElement.value);
+                } catch(e) {
+                    throw new Error('Parse Error: ' + e.message);
+                }
+            },
+        };
     }
 
-    function parseInput(input)
+    function createOutputSectionManager(selector)
     {
-        try {
-            return JSON.parse(input.value);
-        } catch(e) {
-            throw new Error('Parse Error: ' + e.message);
-        }
-    }
-
-    function prettifyInput(e)
-    {
-        try {
-            uglyJsonSection.classList.add('collapsed');
-
-            if (saveButtonVisible) {
-                saveButton.parentNode.removeChild(saveButton);
-                saveButtonVisible = false;
+        function replaceAllChildrenWithNode(element, newChild)
+        {
+            while (element.childNodes.length) {
+                element.removeChild(element.firstChild);
             }
 
-            valueTooltip.style.visibility = 'hidden';
+            element.appendChild(newChild);
+        }
 
-            clearContents(output);
+        function valueClickHandler(ev, path)
+        {
+            ev.stopPropagation();
 
-            output.classList.add('working-message');
-            output.style.display = 'block';
-            output.classList.remove('pretty-json');
-            output.classList.remove('error-message');
-            output.appendChild(document.createTextNode('Working...'));
+            tooltip.hide();
 
-            var data = parseInput(input);
-            clearContents(output);
+            var targetTop = ev.target.getBoundingClientRect().top + window.scrollY,
+                targetLeft = ev.pageX;
 
-            output.classList.add('pretty-json');
-            output.classList.remove('working-message');
+            getAccessorStrings(path, function (strings) {
+                tooltip.show(targetTop, targetLeft, strings);
+            });
+        }
 
-            var result = JSON.prettify(data);
-            result.addEventListener('value-click', valueClickHandler);
+        function updateContent(className, newContent)
+        {
+            tooltip.hide();
 
-            output.appendChild(result.rootElement);
+            outputElement.classList.remove(CLASS_WORKING, CLASS_OUTPUT, CLASS_ERROR);
+            outputElement.classList.add(className);
 
-            if (e && !saveButtonVisible) {
-                prettifyButton.parentNode.appendChild(saveButton);
-                saveButtonVisible = true;
+            replaceAllChildrenWithNode(outputElement, newContent);
+
+            sectionElement.classList.remove('hidden');
+        }
+
+        // "Constants"
+        var CLASS_WORKING = 'working-message';
+        var CLASS_OUTPUT = 'pretty-json';
+        var CLASS_ERROR = 'error-message';
+
+        // Make sure the selector we were given makes sense
+        var sectionElement = document.querySelector(selector);
+        if (!sectionElement) {
+            throw new Error('Unable to get reference to output section from selector: ' + selector);
+        }
+
+        // Create the new container structure in the section
+        var containerElement = sectionElement.appendChild(document.createElement('div'));
+        var outputElement = containerElement.appendChild(document.createElement('div'));
+        containerElement.classList.add('container');
+        outputElement.classList.add('soft-corner');
+        replaceAllChildrenWithNode(sectionElement, containerElement);
+
+        // Create the tooltip controller (used by valueClickHandler() and updateContent() above)
+        var tooltip = JSONPrettifier.Tooltip.create(outputElement, {
+            javascript: "Javascript",
+            phpArray: "PHP Array",
+            phpObject: "PHP Object",
+        });
+
+        return {
+            setWorking: function() {
+                updateContent(CLASS_WORKING, document.createTextNode('Working...'));
+            },
+
+            setOutput: function(prettifyResult) {
+                prettifyResult.addEventListener('value-click', valueClickHandler);
+                updateContent(CLASS_OUTPUT, prettifyResult.rootElement);
+            },
+
+            setError: function(message) {
+                updateContent(CLASS_ERROR, document.createTextNode('Error: ' + message));
+            },
+        };
+    }
+
+    function attachButtonHandlers(selector, inputSection, outputSection)
+    {
+        function prettifyInput()
+        {
+            try {
+                inputSection.collapse();
+
+                if (container.contains(saveButton)) {
+                    container.removeChild(saveButton);
+                }
+
+                outputSection.setWorking();
+                outputSection.setOutput(JSON.prettify(inputSection.getData()));
+
+                container.appendChild(saveButton);
+            } catch(ex) {
+                outputSection.setError(ex.message);
             }
-        } catch(e) {
-            clearContents(output);
-            output.classList.remove('pretty-json');
-            output.classList.remove('working-message');
-            output.classList.add('error-message');
-            output.appendChild(document.createTextNode('Error: ' + e.message));
         }
 
-        if (e) {
-            e.preventDefault();
+        var container = document.querySelector(selector);
+        if (!container) {
+            throw new Error('Unable to get reference to button container from selector: ' + selector);
         }
+
+        var prettifyButton = container.querySelector('button');
+        if (!prettifyButton) {
+            throw new Error('Unable to get reference to prettify button');
+        }
+
+        var saveButton = document.createElement('button');
+        saveButton.appendChild(document.createTextNode('Save'));
+
+        prettifyButton.addEventListener('click', function(ev) {
+            ev.preventDefault();
+
+            if (!inputSection.isEmpty()) {
+                prettifyInput();
+            }
+        });
     }
 
-    saveButton.appendChild(document.createTextNode('Save'));
-    prettifyButton.addEventListener('click', prettifyInput);
+    (function() {
+        var input = createInputSectionManager('#input-section'),
+            output = createOutputSectionManager('#output-section');
 
-    if (input.value !== '') {
-        prettifyInput();
-    }
+        if (input.isEmpty()) {
+            attachButtonHandlers('#button-container', input, output);
+            return;
+        }
 
-    output.addEventListener('click', outputClickHandler);
-
+        try {
+            output.setWorking();
+            output.setOutput(JSON.prettify(input.getData()));
+        } catch(ex) {
+            output.setError(ex.message);
+        }
+    }());
 }());

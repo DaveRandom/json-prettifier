@@ -3,14 +3,102 @@ var PrettyJSON = {};
 (function() {
     'use strict';
 
-    function attachValueClickHandler(wrapper, state, path)
+    /**
+     * @callback VectorMemberEncodingCallback
+     * @param {string} value
+     * @param {string|int} key
+     */
+
+    /**
+     * @typedef {Object} EncodingOptions
+     * @property {int} indentIncrement
+     * @property {string} indentChar
+     */
+
+    /**
+     * @typedef {Object} EncodingResult
+     * @property {HTMLElement} rootElement
+     * @property {Function} addEventListener
+     */
+
+    /**
+     * @typedef {EncodingResult} EncodingState
+     * @property {Array} path
+     * @property {int} currentLineNo
+     * @property {HTMLElement} currentLineFoldControl
+     * @property {Function} triggerEvent
+     * @property {Function} toPublicInterface
+     * @property {Function} getIndentForNewLine
+     * @property {Function} incrementIndent
+     * @property {Function} decrementIndent
+     */
+
+    /**
+     * @typedef {Object} SpanCreationOptions
+     * @property {string[]} [classList]
+     * @property {string|string[]|Node|Node[]} [content]
+     * @property {string} [title]
+     */
+
+    /**
+     * @param {Object} obj
+     * @returns {boolean}
+     */
+    function isEncodable(obj)
     {
+        return ['object', 'string', 'number', 'boolean'].indexOf(typeof obj) >= 0;
+    }
+
+    /**
+     * @param {Object} obj
+     * @returns {boolean}
+     */
+    function isScalar(obj)
+    {
+        return obj === null || ['string', 'number', 'boolean'].indexOf(typeof obj) >= 0;
+    }
+
+    /**
+     * @param {HTMLElement} wrapper
+     * @param {EncodingState} state
+     */
+    function attachValueClickHandler(wrapper, state)
+    {
+        // Make a copy of the path array so it doesn't mutate before the event is fired
+        var path = state.path.slice();
+
         wrapper.addEventListener('click', function(e) {
-            state.triggerEvent('value-click', e, path);
+            // Make a copy of the path array again so it isn't mutated by a handler
+            state.triggerEvent('value-click', e, path.slice());
         });
     }
 
-    function attachBraceMatchRollover(openBrace, closeBrace)
+    /**
+     * @param {HTMLElement} foldControl
+     * @param {HTMLElement} objectBody
+     */
+    function attachFoldControlClickHandler(foldControl, objectBody)
+    {
+        foldControl.classList.add('unfolded');
+
+        foldControl.addEventListener('click', function() {
+            if (foldControl.classList.contains('unfolded')) {
+                foldControl.classList.remove('unfolded');
+                foldControl.classList.add('folded');
+                objectBody.classList.add('folded');
+            } else {
+                foldControl.classList.remove('folded');
+                foldControl.classList.add('unfolded');
+                objectBody.classList.remove('folded');
+            }
+        });
+    }
+
+    /**
+     * @param {HTMLElement} openBrace
+     * @param {HTMLElement} closeBrace
+     */
+    function attachBraceMatchRolloverHandlers(openBrace, closeBrace)
     {
         function mouseOverHandler()
         {
@@ -30,151 +118,106 @@ var PrettyJSON = {};
         closeBrace.addEventListener('mouseout', mouseOutHandler);
     }
 
-    function addFoldControl(target)
+    /**
+     * @param {EncodingState} state
+     * @param {HTMLElement} [container]
+     */
+    function beginLine(state, container)
     {
-        var wrapper = document.createElement('span');
-        wrapper.classList.add('fold-control');
+        var indent = state.getIndentForNewLine();
+        container = container || state.rootElement;
 
-        return target.appendChild(wrapper);
-    }
+        var lineNo = span({
+            classList: ['line-number'],
+            content: String(state.currentLineNo),
+        });
 
-    function addPadding(target, count)
-    {
-        target.appendChild(document.createTextNode('\n'));
+        var nodes = [state.currentLineFoldControl, lineNo];
 
-        var i, result = '';
-
-        for (i = 0; i < count; i++) {
-            result += ' ';
+        if (indent !== null) {
+            nodes.unshift(document.createTextNode('\n'));
+            nodes.push(document.createTextNode(indent));
         }
 
-        var foldCtl = addFoldControl(target);
-
-        target.appendChild(document.createTextNode(result));
-
-        return foldCtl;
+        nodes.forEach(function(node) {
+            container.appendChild(node);
+        });
     }
 
+    /**
+     * @param {string} str
+     * @returns {Node[]|null}
+     */
     function extractLinks(str)
     {
-        var match, anchor, parts = [], p = 0,
-            urlExpr = /\bhttps?:\/\/[^\/]+\/\S*/g;
+        function encodePartialString(text)
+        {
+            return JSON.stringify(text).slice(1, -1);
+        }
 
-        while (match = urlExpr.exec(str)) {
-            if (p < match.index) {
-                parts.push(document.createTextNode(str.slice(p, match.index)));
+        function appendText(parts, text)
+        {
+            var encodedText = encodePartialString(text);
+
+            if (encodedText !== '') {
+                parts.push(document.createTextNode(encodedText));
             }
+        }
+
+        var match, parts = [], p = 0;
+        var expr = /\bhttps?:\/\/[^\/]+\/\S*/g;
+
+        while (match = expr.exec(str)) {
+            if (p < match.index) {
+                appendText(parts, str.slice(p, match.index));
+            }
+
             p = match.index + match[0].length;
 
-            anchor = document.createElement('a');
+            var anchor = document.createElement('a');
             anchor.href = match[0];
             anchor.target = '_blank';
-            anchor.appendChild(document.createTextNode(JSON.stringify(match[0]).slice(1, -1)));
+            anchor.appendChild(document.createTextNode(encodePartialString(match[0])));
+
             parts.push(anchor);
         }
 
-        if (parts.length) {
-            if (p < str.length - 1) {
-                parts.push(document.createTextNode(str.slice(p)));
-            }
-
-            return parts;
+        if (!parts.length) {
+            return null;
         }
+
+        if (p < str.length) {
+            appendText(parts, str.slice(p));
+        }
+
+        return parts;
     }
 
-    function elementifyArray(arr, state, indent, basePath)
-    {
-        var i, l, containerElement, member, wrapper, elementPath;
-
-        containerElement = document.createElement('span');
-        containerElement.classList.add('object-body');
-
-        for (i = 0, l = arr.length; i < l; i++) {
-            var foldCtl = addPadding(containerElement, indent);
-
-            elementPath = basePath.slice();
-            elementPath.push([i]);
-
-            member = document.createElement('span');
-            member.classList.add('object-member');
-
-            toElement(arr[i], state, member, indent, elementPath, foldCtl);
-
-            wrapper = document.createElement('span');
-            wrapper.classList.add('object-delimiter', 'json-grammar');
-            wrapper.appendChild(document.createTextNode(','));
-            member.appendChild(wrapper);
-
-            containerElement.appendChild(member);
-        }
-
-        if (containerElement.lastChild) {
-            containerElement.lastChild.removeChild(containerElement.lastChild.lastChild);
-        }
-
-        return containerElement;
-    }
-
-    function elementifyObject(obj, state, indent, basePath)
-    {
-        var key, containerElement, member, wrapper, elementPath;
-
-        containerElement = document.createElement('span');
-        containerElement.classList.add('object-body');
-
-        for (key in obj) {
-            if (obj.hasOwnProperty(key) && typeof obj[key] !== 'function') {
-                var foldCtl = addPadding(containerElement, indent);
-
-                elementPath = basePath.slice();
-                elementPath.push(key);
-
-                member = document.createElement('span');
-                member.classList.add('object-member');
-
-                wrapper = document.createElement('span');
-                wrapper.classList.add('object-member-key');
-                toElement(String(key), state, wrapper, indent);
-                member.appendChild(wrapper);
-
-                wrapper = document.createElement('span');
-                wrapper.classList.add('object-delimiter', 'json-grammar');
-                wrapper.appendChild(document.createTextNode(' : '));
-                member.appendChild(wrapper);
-
-                wrapper = document.createElement('span');
-                wrapper.classList.add('object-member-value');
-                toElement(obj[key], state, wrapper, indent, elementPath, foldCtl);
-                member.appendChild(wrapper);
-
-                wrapper = document.createElement('span');
-                wrapper.classList.add('object-delimiter', 'json-grammar');
-                wrapper.appendChild(document.createTextNode(','));
-                member.appendChild(wrapper);
-
-                containerElement.appendChild(member);
-            }
-        }
-
-        if (containerElement.lastChild) {
-            containerElement.lastChild.removeChild(containerElement.lastChild.lastChild);
-        }
-
-        return containerElement;
-    }
-
-    function createStateObject(containerElement)
+    /**
+     * @param {EncodingOptions} [options]
+     * @returns {EncodingState}
+     */
+    function createStateObject(options)
     {
         var eventHandlers = {};
 
-        return {
-            rootElement: containerElement,
+        var indent = 0;
+        var indentIncrement = Number(options.indentIncrement || 4);
+        var indentChar = String(options.indentChar || ' ').charAt(0) || ' ';
+
+        var state = {
+            rootElement: document.createElement('div'),
+            path: [],
+            currentLineNo: 0,
+            currentLineFoldControl: null,
+
             addEventListener: function(name, callback) {
                 if (eventHandlers[name] === undefined) {
                     eventHandlers[name] = [];
                 }
                 eventHandlers[name].push(callback);
             },
+
             triggerEvent: function(name) {
                 if (eventHandlers[name] === undefined) {
                     return;
@@ -184,166 +227,403 @@ var PrettyJSON = {};
                     eventHandlers[name][i].apply(null, args)
                 }
             },
+
+            toPublicInterface: function() {
+                return {
+                    rootElement: state.rootElement,
+                    addEventListener: state.addEventListener,
+                };
+            },
+
+            getIndentForNewLine: function() {
+                state.currentLineFoldControl = span({
+                    classList: ['fold-control'],
+                });
+
+                if (state.currentLineNo++ === 0) {
+                    return null;
+                }
+
+                var padding = '';
+
+                for (var i = 0; i < indent; i++) {
+                    padding += indentChar;
+                }
+
+                return padding;
+            },
+
+            incrementIndent: function() {
+                indent += indentIncrement;
+            },
+
+            decrementIndent: function() {
+                indent -= indentIncrement;
+            },
         };
+
+        state.rootElement.classList.add('pretty-json-container');
+
+        return state;
     }
 
-    function attachFoldControlClickEventListener(foldCtl, objectBody) {
-        foldCtl.classList.add('unfolded');
+    /**
+     * @param {SpanCreationOptions} [options]
+     * @returns {HTMLElement}
+     */
+    function span(options)
+    {
+        function normalizeContent(content, result)
+        {
+            result = result || [];
 
-        foldCtl.addEventListener('click', function() {
-            if (foldCtl.classList.contains('unfolded')) {
-                foldCtl.classList.remove('unfolded');
-                foldCtl.classList.add('folded');
-                objectBody.classList.add('folded');
-            } else {
-                foldCtl.classList.remove('folded');
-                foldCtl.classList.add('unfolded');
-                objectBody.classList.remove('folded');
+            if (typeof content === 'string') {
+                content = document.createTextNode(content)
             }
+
+            if (content instanceof Array) {
+                for (var i = 0; i < content.length; i++) {
+                    normalizeContent(content[i], result);
+                }
+            } else if (content instanceof Node) {
+                result.push(content);
+            }
+
+            return result;
+        }
+
+        var span = document.createElement('span');
+
+        (options.classList || []).forEach(function(className) {
+            span.classList.add(String(className));
         });
-    }
 
-    function toElement(obj, state, containerElement, indent, path, foldCtl)
-    {
-        var wrapper, openBrace, closeBrace, parts, i, l,
-            isValue = Boolean(path);
+        normalizeContent(options.content).forEach(function(node) {
+            span.appendChild(node);
+        });
 
-        if (!containerElement) {
-            containerElement = document.createElement('div');
-            containerElement.classList.add('pretty-json-container');
-            foldCtl = addFoldControl(containerElement);
-
-            state = createStateObject(containerElement);
+        if (options.hasOwnProperty('title')) {
+            span.title = String(options.title);
         }
 
-        indent = indent || 0;
-        path = path || [];
-
-        switch (typeof obj) {
-            case 'string':
-                if (parts = extractLinks(obj)) {
-                    wrapper = document.createElement('span');
-                    wrapper.classList.add('value-string');
-                    wrapper.title = 'String';
-                    if (isValue) {
-                        wrapper.classList.add('json-value');
-                        attachValueClickHandler(wrapper, state, path);
-                    }
-
-                    wrapper.appendChild(document.createTextNode('"'));
-                    for (i = 0, l = parts.length; i < l; i++) {
-                        wrapper.appendChild(parts[i]);
-                    }
-                    wrapper.appendChild(document.createTextNode('"'));
-
-                    containerElement.appendChild(wrapper);
-                    break;
-                }
-
-            case 'number':
-            case 'boolean':
-                wrapper = document.createElement('span');
-                wrapper.classList.add('value-' + (typeof obj));
-                wrapper.title = (typeof obj).slice(0, 1).toUpperCase() + (typeof obj).slice(1);
-                if (isValue) {
-                    wrapper.classList.add('json-value');
-                    attachValueClickHandler(wrapper, state, path);
-                }
-
-                wrapper.appendChild(document.createTextNode(JSON.stringify(obj)));
-
-                containerElement.appendChild(wrapper);
-                break;
-
-            case 'object':
-                if (obj === null) {
-                    wrapper = document.createElement('span');
-                    wrapper.classList.add('value-null');
-                    wrapper.title = 'Null';
-                    if (isValue) {
-                        wrapper.classList.add('json-value');
-                        attachValueClickHandler(wrapper, state, path);
-                    }
-
-                    wrapper.appendChild(document.createTextNode(JSON.stringify(obj)));
-
-                    containerElement.appendChild(wrapper);
-                } else if (obj instanceof Array) {
-                    openBrace = document.createElement('span');
-                    openBrace.classList.add('array-enclosure', 'json-grammar');
-                    openBrace.appendChild(document.createTextNode('['));
-                    closeBrace = document.createElement('span');
-                    closeBrace.classList.add('array-enclosure', 'json-grammar');
-                    openBrace.title = closeBrace.title = 'Array (' + obj.length + ' element' + (obj.length === 1 ? '' : 's') + ')';
-
-                    if (isValue) {
-                        openBrace.classList.add('json-value');
-                        attachValueClickHandler(openBrace, state, path);
-                        closeBrace.classList.add('json-value');
-                        attachValueClickHandler(closeBrace, state, path);
-                    }
-
-                    attachBraceMatchRollover(openBrace, closeBrace);
-
-                    containerElement.appendChild(openBrace);
-
-                    if (obj.length) {
-                        wrapper = elementifyArray(obj, state, indent + 4, path);
-                        attachFoldControlClickEventListener(foldCtl, wrapper);
-                        addPadding(wrapper, indent);
-                        containerElement.appendChild(wrapper);
-                    }
-
-                    closeBrace.appendChild(document.createTextNode(']'));
-                    containerElement.appendChild(closeBrace);
-                } else {
-                    openBrace = document.createElement('span');
-                    openBrace.classList.add('object-enclosure');
-                    openBrace.appendChild(document.createTextNode('{'));
-                    closeBrace = document.createElement('span');
-                    closeBrace.classList.add('object-enclosure');
-
-                    if (isValue) {
-                        openBrace.classList.add('json-value');
-                        attachValueClickHandler(openBrace, state, path);
-                        closeBrace.classList.add('json-value');
-                        attachValueClickHandler(closeBrace, state, path);
-                    }
-
-                    wrapper = elementifyObject(obj, state, indent + 4, path);
-
-                    openBrace.title = closeBrace.title = 'Object (' + wrapper.childNodes.length + ' member' + (wrapper.childNodes.length === 1 ? '' : 's') + ')';
-                    attachBraceMatchRollover(openBrace, closeBrace);
-
-                    containerElement.appendChild(openBrace);
-
-                    if (wrapper.childNodes.length) {
-                        attachFoldControlClickEventListener(foldCtl, wrapper);
-                        addPadding(wrapper, indent);
-                        containerElement.appendChild(wrapper);
-                        foldCtl.classList.add('foldable', 'unfolded');
-                    }
-
-                    closeBrace.appendChild(document.createTextNode('}'));
-                    containerElement.appendChild(closeBrace);
-                }
-                break;
-        }
-
-        return {
-            rootElement: state.rootElement,
-            addEventListener: state.addEventListener,
-        };
+        return span;
     }
 
-    PrettyJSON.elementify = function(obj)
+    /**
+     * @param {Node[]} parts
+     * @param {EncodingState} state
+     * @param {boolean} isValue
+     * @param {string} title
+     * @returns {HTMLElement}
+     */
+    function encodeStringValueWithLinks(parts, state, isValue, title)
     {
-        return toElement(obj);
+        var wrapper = span({
+            classList: ['value-string'],
+            title: title,
+        });
+
+        if (isValue) {
+            wrapper.classList.add('json-value');
+            attachValueClickHandler(wrapper, state);
+        }
+
+        wrapper.appendChild(document.createTextNode('"'));
+
+        for (var i = 0, l = parts.length; i < l; i++) {
+            wrapper.appendChild(parts[i]);
+        }
+
+        wrapper.appendChild(document.createTextNode('"'));
+
+        return wrapper;
+    }
+
+    /**
+     * @param {Object} value
+     * @param {EncodingState} state
+     * @param {boolean} isValue
+     * @returns {HTMLElement}
+     */
+    function encodeScalarValue(value, state, isValue)
+    {
+        var linkParts;
+        var type = value !== null
+            ? typeof value
+            : 'null';
+        var title = type.slice(0, 1).toUpperCase() + type.slice(1);
+        var encoded = JSON.stringify(value);
+
+        if (typeof value === 'string') {
+            title = 'String (' + value.length + ' characters';
+
+            if (encoded.length !== (value.length + 2)) {
+                title += ', ' + (encoded.length - 2) + ' characters encoded';
+            }
+
+            title += ')';
+
+            if ((linkParts = extractLinks(value))) {
+                return encodeStringValueWithLinks(linkParts, state, isValue, title);
+            }
+        }
+
+        var wrapper = span({
+            classList: ['value-' + type],
+            title: title,
+        });
+
+        if (isValue) {
+            wrapper.classList.add('json-value');
+            attachValueClickHandler(wrapper, state);
+        }
+
+        wrapper.appendChild(document.createTextNode(encoded));
+
+        return wrapper;
+    }
+
+    /**
+     * @param {Object} obj
+     * @param {EncodingState} state
+     * @param {VectorMemberEncodingCallback} callback
+     * @returns {HTMLElement}
+     */
+    function encodeVectorMembers(obj, state, callback)
+    {
+        var type = obj instanceof Array ? 'array' : 'object';
+        var counter = 0;
+        var container = span({classList: ['vector-body', type + '-body']});
+        var foldControl = state.currentLineFoldControl;
+
+        state.incrementIndent();
+
+        for (var key in obj) {
+            if (!obj.hasOwnProperty(key) || !isEncodable(obj[key])) {
+                continue;
+            }
+
+            var value = obj[key];
+
+            if (obj instanceof Array) {
+                if (String(Number(key)) !== String(key)) {
+                    continue;
+                }
+
+                key = Number(key);
+            }
+
+            beginLine(state, container);
+
+            state.path.push(key);
+            container.appendChild(callback(value, key));
+            state.path.pop();
+
+            counter++;
+        }
+
+        state.decrementIndent();
+
+        // remove trailing comma and add trailing new line
+        if (container.lastChild) {
+            container.lastChild.removeChild(container.lastChild.lastChild);
+            beginLine(state, container);
+            attachFoldControlClickHandler(foldControl, container);
+        }
+
+        container.setAttribute('data-member-count', String(counter));
+
+        return container;
+    }
+
+    /**
+     * @param {Object} value
+     * @param {EncodingState} state
+     * @returns {HTMLElement}
+     */
+    function encodeArrayMember(value, state)
+    {
+        var container = span({classList: ['vector-member', 'array-member']});
+
+        container.appendChild(encodeValue(value, state));
+
+        container.appendChild(span({
+            content: ',',
+            classList: ['json-grammar', 'delimiter', 'array-delimiter'],
+        }));
+
+        return container;
+    }
+
+    /**
+     * @param {Array} arr
+     * @param {EncodingState} state
+     * @returns {HTMLElement}
+     */
+    function encodeArray(arr, state)
+    {
+        var container = span({classList:['vector', 'array']});
+
+        var body = encodeVectorMembers(arr, state, function(value) {
+            return encodeArrayMember(value, state);
+        });
+        var memberCount = Number(body.getAttribute('data-member-count'));
+
+        var braceTitle = 'Array (' + memberCount + ' element' + (memberCount === 1 ? '' : 's') + ')';
+
+        var openBrace = span({
+            content: '[',
+            classList: ['json-grammar', 'enclosure', 'array-enclosure', 'array-open', 'json-value'],
+            title: braceTitle,
+        });
+        var closeBrace = span({
+            content: ']',
+            classList: ['json-grammar', 'enclosure', 'array-enclosure', 'array-close', 'json-value'],
+            title: braceTitle,
+        });
+
+        attachValueClickHandler(openBrace, state);
+        attachValueClickHandler(closeBrace, state);
+
+        attachBraceMatchRolloverHandlers(openBrace, closeBrace);
+
+        container.appendChild(openBrace);
+
+        if (memberCount > 0) {
+            container.appendChild(body);
+        }
+
+        container.appendChild(closeBrace);
+
+        return container;
+    }
+
+    /**
+     * @param {string} key
+     * @param {Object} value
+     * @param {EncodingState} state
+     * @returns {HTMLElement}
+     */
+    function encodeObjectMember(key, value, state)
+    {
+        var member = span({classList: ['vector-member', 'object-member']});
+
+        member
+            .appendChild(span({classList: ['object-member-key']}))
+            .appendChild(encodeScalarValue(key, state, false))
+        ;
+
+        member.appendChild(document.createTextNode(' '));
+        member.appendChild(span({
+            content: ':',
+            classList: ['json-grammar', 'delimiter', 'object-delimiter', 'object-member-value-delimiter'],
+        }));
+        member.appendChild(document.createTextNode(' '));
+
+        member
+            .appendChild(span({classList: ['vector-member-value', 'object-member-value']}))
+            .appendChild(encodeValue(value, state))
+        ;
+
+        member.appendChild(span({
+            content: ',',
+            classList: ['json-grammar', 'delimiter', 'object-delimiter', 'object-member-delimiter'],
+        }));
+
+        return member;
+    }
+
+    /**
+     * @param {Object} obj
+     * @param {EncodingState} state
+     */
+    function encodeObject(obj, state)
+    {
+        var container = span({classList: ['vector', 'object']});
+
+        var body = encodeVectorMembers(obj, state, function(value, key) {
+            return encodeObjectMember(key, value, state);
+        });
+        var memberCount = Number(body.getAttribute('data-member-count'));
+
+        var braceTitle = 'Object (' + memberCount + ' member' + (memberCount === 1 ? '' : 's') + ')';
+
+        var openBrace = span({
+            content: '{',
+            classList: ['json-grammar', 'enclosure', 'object-enclosure', 'object-open', 'json-value'],
+            title: braceTitle,
+        });
+
+        var closeBrace = span({
+            content: '}',
+            classList: ['json-grammar', 'enclosure', 'object-enclosure', 'object-close', 'json-value'],
+            title: braceTitle,
+        });
+
+        attachValueClickHandler(openBrace, state);
+        attachValueClickHandler(closeBrace, state);
+
+        attachBraceMatchRolloverHandlers(openBrace, closeBrace);
+
+        container.appendChild(openBrace);
+
+        if (memberCount > 0) {
+            container.appendChild(body);
+        }
+
+        container.appendChild(closeBrace);
+
+        return container;
+    }
+
+    /**
+     * @param {Object} obj
+     * @param {EncodingState} state
+     * @returns {HTMLElement}
+     */
+    function encodeValue(obj, state)
+    {
+        if (isScalar(obj)) {
+            return encodeScalarValue(obj, state, true);
+        }
+
+        if (typeof obj !== 'object') {
+            return null;
+        }
+
+        return (obj instanceof Array)
+            ? encodeArray(obj, state)
+            : encodeObject(obj, state)
+        ;
+    }
+
+    /**
+     * @param obj
+     * @param {EncodingOptions?} options
+     * @returns {EncodingResult}
+     */
+    PrettyJSON.elementify = function(obj, options)
+    {
+        if (!isEncodable(obj)) {
+            throw new Error('Object of type "' + (typeof obj) + '" cannot be represented as JSON');
+        }
+
+        var state = createStateObject(options || {});
+
+        beginLine(state);
+        state.rootElement.appendChild(encodeValue(obj, state));
+
+        return state.toPublicInterface();
     };
 
-    PrettyJSON.stringify = function(obj)
+    /**
+     * @param obj
+     * @param {EncodingOptions?} options
+     * @returns {string}
+     */
+    PrettyJSON.stringify = function(obj, options)
     {
-        return toElement(obj).outerHTML;
+        return PrettyJSON.elementify(obj, options).outerHTML;
     };
 
     JSON.prettify = PrettyJSON.elementify;

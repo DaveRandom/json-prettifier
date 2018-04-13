@@ -44,11 +44,11 @@ div.container {
     width: 94%;
     margin: 0 auto;
 }
-body.paste .hideable {
-    display: none;
-}
 section {
     margin-top: 25px;
+}
+section.hidden {
+    display: none;
 }
 .soft-corner {
     border-radius: 6px;
@@ -76,16 +76,16 @@ button:active {
     top: 1px;
     left: 1px;
 }
-#ugly-json {
+#input-section {
     height: calc(100% - 111px);
 }
-#ugly-json.collapsed {
+#input-section.collapsed {
     height: 180px;
 }
-#ugly-json > div.container, #ugly-json form {
+#input-section > div.container, #input-section form {
     height: 100%;
 }
-#input {
+#input-section textarea {
     width: 100%;
     min-width: 100%;
     max-width: 100%;
@@ -96,10 +96,10 @@ button:active {
     margin: 0 auto;
     height: calc(100% - 60px);
 }
-#prettify {
+#button-container {
     margin-top: 10px;
 }
-#output {
+#output-section > div > div {
     padding: 4px 10px;
     border: 1px solid;
     display: none;
@@ -110,11 +110,11 @@ button:active {
     overflow-x: auto;
     overflow-y: hidden;
 }
-#output.error-message {
+#output-section > div > div.error-message {
     background-color: #EEB4B4;
     border-color: #A62A2A;
 }
-#output.pretty-json, #output.working-message {
+#output-section > div > div.pretty-json, #output-section > div > div.working-message {
     background-color: #F8F8FF;
     border-color: #DDDDDD;
 }

@@ -1,9 +1,10 @@
 <?php
 
 $json = $json ?? '';
-$bodyClass = $json !== ''
-    ? ' class="paste"'
-    : '';
+$isPaste = $json !== '';
+
+$inputClass = $isPaste ? ' class="hidden"' : '';
+$outputClass = !$isPaste ? ' class="hidden"' : '';
 
 ?>
 <!DOCTYPE html>
@@ -12,32 +13,27 @@ $bodyClass = $json !== ''
     <meta http-equiv="content-type" content="text/html;charset=utf-8">
     <title>JSON Prettifier</title>
     <link rel="stylesheet" type="text/css" href="/PrettyJSON/PrettyJSON.css">
+    <link rel="stylesheet" type="text/css" href="/tooltip.css">
     <link rel="stylesheet" type="text/css" href="/main.css">
 </head>
-<body<?= $bodyClass ?>>
+<body>
 <header>
     <h1><a href="/">JSON Prettifier</a></h1>
     <div class="container">[<a href="https://github.com/DaveRandom/json-prettifier">source</a>]</div>
 </header>
-<section id="ugly-json" class="hideable">
+<section id="input-section"<?= $inputClass ?>>
     <div class="container">
         <form method="post" action="/save">
             <textarea id="input" class="soft-corner" title="Paste ugly JSON here" placeholder="Paste ugly JSON here" name="json"><?= \htmlspecialchars($json) ?></textarea>
-            <button id="prettify" class="button">Prettify</button>
+            <div id="button-container">
+                <button type="button" class="button">Prettify</button>
+            </div>
         </form>
     </div>
 </section>
-<section id="pretty-json">
-    <div class="container">
-        <div id="output" class="soft-corner"></div>
-    </div>
-</section>
-<div id="value-tooltip">
-    <div><span class="language-accessor-title">JavaScript:</span> <span id="javascript-accessor" class="language-accessor"></span></div>
-    <div><span class="language-accessor-title">PHP Array:</span> <span id="php-array-accessor" class="language-accessor"></span></div>
-    <div><span class="language-accessor-title">PHP Object:</span> <span id="php-object-accessor" class="language-accessor"></span></div>
-</div>
+<section id="output-section"<?= $outputClass ?>></section>
 <script type="text/javascript" src="/PrettyJSON/PrettyJSON.js"></script>
+<script type="text/javascript" src="/tooltip.js"></script>
 <script type="text/javascript" src="/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,18 @@
+.value-tooltip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 10px 15px;
+    visibility: hidden;
+    border: solid 1px #c0c0c0;
+    border-radius: 8px;
+    box-shadow: 5px 5px 5px rgba(136, 136, 136, 0.5);
+    background-color: rgb(255,255,204);
+}
+.value-tooltip td.language-accessor-title {
+    font-style: italic;
+    padding-right: 10px;
+}
+.value-tooltip td.language-accessor {
+    font-family: "Courier New", Courier, monospace;
+}
