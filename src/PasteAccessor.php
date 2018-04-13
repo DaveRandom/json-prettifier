@@ -16,6 +16,10 @@ final class PasteAccessor
         $this->storageDirectory = $storageDirectory;
     }
 
+    /**
+     * @throws BadRequestException
+     * @throws InternalErrorException
+     */
     public function save(string $data): string
     {
         try {
@@ -25,7 +29,11 @@ final class PasteAccessor
         }
 
         do {
-            $id = base62_encode(\random_bytes(16));
+            try {
+                $id = base62_encode(\random_bytes(16));
+            } catch (\Throwable $e) {
+                throw new InternalErrorException('Failed to obtain random bytes: ' . $e->getMessage());
+            }
         } while (\is_file($path = "{$this->storageDirectory}/{$id}.json"));
 
         if (!\file_put_contents($path, $data)) {
@@ -35,6 +43,10 @@ final class PasteAccessor
         return $id;
     }
 
+    /**
+     * @throws InternalErrorException
+     * @throws NotFoundException
+     */
     public function load(string $id): string
     {
         $path = "{$this->storageDirectory}/{$id}.json";

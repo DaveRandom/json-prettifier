@@ -4,6 +4,7 @@ namespace DaveRandom\JsonPrettifier;
 
 use Shitwork\Exceptions\BadRequestException;
 use Shitwork\Exceptions\InternalErrorException;
+use Shitwork\Exceptions\NotFoundException;
 use Shitwork\Request;
 use Shitwork\TemplateFetcher;
 
@@ -27,16 +28,28 @@ final class Controller extends \Shitwork\Controller
             ->render();
     }
 
+    /**
+     * @throws BadRequestException
+     * @throws InternalErrorException
+     */
     public function save()
     {
         if (!$this->request->hasFormParam('json')) {
             throw new BadRequestException('Missing required form field');
         }
 
-        $this->request->redirect('/' . $this->pasteAccessor->save($this->request->getFormParam('json')), 303);
+        try {
+            $this->request->redirect('/' . $this->pasteAccessor->save($this->request->getFormParam('json')), 303);
+        } catch (\Throwable $e) {
+            throw new InternalErrorException('Redirect failed: ' . $e->getMessage());
+        }
     }
 
-    public function load($vars)
+    /**
+     * @throws InternalErrorException
+     * @throws NotFoundException
+     */
+    public function load(array $vars)
     {
         if (!isset($vars['id'])) {
             throw new InternalErrorException('Paste ID not defined');
