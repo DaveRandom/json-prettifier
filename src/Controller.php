@@ -2,6 +2,7 @@
 
 namespace DaveRandom\JsonPrettifier;
 
+use ExceptionalJSON\DecodeErrorException;
 use Shitwork\Exceptions\BadRequestException;
 use Shitwork\Exceptions\InternalErrorException;
 use Shitwork\Exceptions\NotFoundException;
@@ -60,5 +61,46 @@ final class Controller extends \Shitwork\Controller
             ->render([
                 'json' => $this->pasteAccessor->load($vars['id']),
             ]);
+    }
+
+    /**
+     * @throws BadRequestException
+     * @throws InternalErrorException
+     */
+    public function getPhpAccessors()
+    {
+        try {
+            $decoded = \ExceptionalJSON\decode(\file_get_contents('php://input'));
+        } catch (DecodeErrorException $e) {
+            throw new BadRequestException('Error decoding input JSON: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            throw new InternalErrorException('Unexpected error while decoding JSON: ' . $e->getMessage());
+        }
+
+        if (!\is_array($decoded)) {
+            throw new BadRequestException('Supplied JSON is not an array');
+        }
+
+        $arrayLevels = [];
+        $objectLevels = [];
+
+        foreach ($decoded as $level) {
+            $arrayLevels[] = \var_export($level, true);
+
+            if (\preg_match('/^[a-z_\x7f-\xff][a-z0-9_\x7f-\xff]*$/i', (string)$level)) {
+                $objectLevels[] = $level;
+            } else {
+                $objectLevels[] = '{' . \var_export((string)$level, true) . '}';
+            }
+        }
+
+        $arrayLevels = !empty($arrayLevels) ? '[' . \implode('][', $arrayLevels) . ']' : '';
+        $objectLevels = !empty($objectLevels) ? '->' . \implode('->', $objectLevels) : '';
+
+        \header('Content-Type: application/json');
+        exit(\ExceptionalJSON\encode((object)[
+            'phpArray' => '$arr' . $arrayLevels,
+            'phpObject' => '$obj' . $objectLevels,
+        ]));
     }
 }

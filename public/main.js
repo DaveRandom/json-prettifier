@@ -1,51 +1,62 @@
 (function() {
     'use strict';
 
-    var validJsNameExpr = /^[_a-z][_a-z0-9]*$/i;
-    var validPhpNameExpr = /^[a-z_\x7f-\xff][a-z0-9_\x7f-\xff]*$/i;
-
     function getAccessorStrings(path, callback)
     {
+        function makeJavascriptAccessorString(path)
+        {
+            return 'obj' + path.map(function(level) {
+                return /^[_a-z][_a-z0-9]*$/i.test(String(level))
+                    ? '.' + level
+                    : '[' + JSON.stringify(level) + ']';
+            }).join('');
+        }
+
+        function handleHttpResponse()
+        {
+            if (xhr.readyState !== XMLHttpRequest.DONE) {
+                return;
+            }
+
+            if (xhr.status !== 200) {
+                console.error('HTTP request to fetch PHP accessor strings failed: HTTP ' + xhr.status);
+                return;
+            }
+
+            var decoded;
+
+            try {
+                decoded = JSON.parse(xhr.responseText);
+            } catch (e) {
+                console.error('HTTP request to fetch PHP accessor strings failed: Parse error: ' + e.message);
+                return;
+            }
+
+            if (typeof decoded.phpArray !== 'string' || typeof decoded.phpObject !== 'string') {
+                console.error('HTTP request to fetch PHP accessor strings failed: Response object not in expected format');
+                return;
+            }
+
+            path.accessorStrings = {
+                javascript: makeJavascriptAccessorString(path),
+                phpArray: decoded.phpArray,
+                phpObject: decoded.phpObject,
+            };
+
+            callback(path.accessorStrings);
+        }
+
         if (typeof path.accessorStrings !== 'undefined') {
             callback(path.accessorStrings);
             return;
         }
 
-        var jsString = 'obj',
-            phpArrayString = '$arr',
-            phpObjectString = '$obj',
-            key;
+        var xhr = new XMLHttpRequest();
 
-        for (var i = 0; i < path.length; i++) {
-            if (typeof path[i] === 'number') {
-                jsString += '[' + path[i] + ']';
-                phpArrayString += '[' + path[i] + ']';
-                phpObjectString += '[' + path[i] + ']';
-                continue;
-            }
-
-            key = JSON.stringify(path[i]);
-
-            jsString += validJsNameExpr.test(path[i])
-                ? '.' + path[i]
-                : '[' + key + ']';
-
-            phpArrayString += '[' + key + ']';
-
-            if (validPhpNameExpr.test(path[i])) {
-                phpObjectString +=  '->' + path[i];
-            } else {
-                phpObjectString +=  '->{' + key + '}';
-            }
-        }
-
-        path.accessorStrings = {
-            javascript: jsString,
-            phpArray: phpArrayString,
-            phpObject: phpObjectString,
-        };
-
-        callback(path.accessorStrings);
+        xhr.open('POST', '/php-accessors');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = handleHttpResponse;
+        xhr.send(JSON.stringify(path));
     }
 
     function createInputSectionManager(selector)

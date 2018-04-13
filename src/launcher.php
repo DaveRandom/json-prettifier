@@ -2,6 +2,7 @@
 
 namespace DaveRandom\JsonPrettifier;
 
+use Shitwork\Exceptions\BadRequestException;
 use Shitwork\Exceptions\ForbiddenException;
 use Shitwork\Exceptions\MethodNotAllowedException;
 use Shitwork\Exceptions\NotFoundException;
@@ -21,6 +22,14 @@ try {
         ->make(Router::class)
         ->dispatchRequest($injector->make(Request::class))
         ->dispatch();
+} catch (BadRequestException $e) {
+    error_log((string)$e);
+
+    \header('HTTP/1.1 400 Bad Request');
+
+    $injector->make(TemplateFetcher::class)
+        ->fetch('error')
+        ->render(['title' => 'Bad Request']);
 } catch (NotFoundException $e) {
     \header('HTTP/1.1 404 Not Found');
 
