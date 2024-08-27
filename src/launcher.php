@@ -8,7 +8,7 @@ use Shitwork\Exceptions\MethodNotAllowedException;
 use Shitwork\Exceptions\NotFoundException;
 use Shitwork\Request;
 use Shitwork\Routing\Router;
-use Shitwork\TemplateFetcher;
+use Shitwork\Templating\TemplateFetcher;
 
 require __DIR__ . '/bootstrap.php';
 

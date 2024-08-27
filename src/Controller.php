@@ -7,7 +7,7 @@ use Shitwork\Exceptions\BadRequestException;
 use Shitwork\Exceptions\InternalErrorException;
 use Shitwork\Exceptions\NotFoundException;
 use Shitwork\Request;
-use Shitwork\TemplateFetcher;
+use Shitwork\Templating\TemplateFetcher;
 
 final class Controller extends \Shitwork\Controller
 {
@@ -26,7 +26,7 @@ final class Controller extends \Shitwork\Controller
     {
         $this->templateFetcher
             ->fetch('index')
-            ->render();
+            ->renderOutput();
     }
 
     /**
@@ -58,7 +58,7 @@ final class Controller extends \Shitwork\Controller
 
         $this->templateFetcher
             ->fetch('index')
-            ->render([
+            ->renderOutput([
                 'json' => $this->pasteAccessor->load($vars['id']),
             ]);
     }
