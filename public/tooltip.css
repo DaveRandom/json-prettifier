@@ -1,13 +1,28 @@
+@media (prefers-color-scheme: light) {
+    .value-tooltip {
+        border-color: #c0c0c0;
+        box-shadow: 5px 5px 5px rgba(136, 136, 136, 0.5);
+        background-color: rgb(255, 255, 204);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .value-tooltip {
+        border-color: #c0c0c0;
+        box-shadow: 5px 5px 5px rgba(136, 136, 136, 0.5);
+        background-color: rgb(255, 255, 204);
+    }
+}
+
 .value-tooltip {
     position: absolute;
     left: 0;
     top: 0;
     padding: 10px 15px;
     visibility: hidden;
-    border: solid 1px #c0c0c0;
+    border-width: 1px;
+    border-style: solid;
     border-radius: 8px;
-    box-shadow: 5px 5px 5px rgba(136, 136, 136, 0.5);
-    background-color: rgb(255,255,204);
 }
 .value-tooltip td.language-accessor-title {
     font-style: italic;
