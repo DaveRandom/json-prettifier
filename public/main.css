@@ -19,7 +19,7 @@
     button:hover {
         background: linear-gradient(to bottom, #CFCFCF, #EDEDED);
     }
-	#input-section textarea {
+    #input-section textarea {
         border-color: #D5D5D5;
         background-color: #F9F9F9;
     }
@@ -35,36 +35,37 @@
 
 @media (prefers-color-scheme: dark) {
     body {
-        color: #333;
-        background-color:#fff;
+        color: #bbbbbb;
+        background-color: #161616;
     }
     h1 a {
-        color: #333;
+        color: #bbbbbb;
     }
     a {
-        color: #236B8E;
+        color: #236b8e;
     }
     button {
-        box-shadow: inset 0 1px 0 0 #FFFFFF;
-        background: linear-gradient(to bottom, #EDEDED, #CFCFCF);
-        border-color: #DCDCDC;
-        color: #777777;
-        text-shadow: 1px 1px 0 #FFFFFF;
+        box-shadow: inset 0 1px 0 0 #000000;
+        background: linear-gradient(to bottom, #282828, #101010);
+        border-color: #3e3e3e;
+        color: #a0a0a0;
+        text-shadow: 1px 1px 0 #000000;
     }
     button:hover {
-        background: linear-gradient(to bottom, #CFCFCF, #EDEDED);
+        background: linear-gradient(to bottom, #101010, #282828);
     }
-	#input-section textarea {
-        border-color: #D5D5D5;
-        background-color: #F9F9F9;
+    #input-section textarea {
+        border-color: #444444;
+        background-color: #121212;
+	color: #bbbbbb;
     }
     #output-section > div > div.error-message {
-        background-color: #EEB4B4;
-        border-color: #A62A2A;
+        background-color: #451717;
+        border-color: #662d2d;
     }
     #output-section > div > div.pretty-json, #output-section > div > div.working-message {
-        background-color: #F8F8FF;
-        border-color: #DDDDDD;
+        background-color: #121212;
+        border-color: #444444;
     }
 }
 
@@ -119,7 +120,6 @@ section.hidden {
 }
 button {
     box-shadow: inset 0 1px 0 0 #FFFFFF;
-    background: linear-gradient(to bottom, #EDEDED, #CFCFCF);
     border-width: 1px;
     border-style: solid;
     border-radius: 6px;
